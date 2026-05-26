@@ -8,11 +8,13 @@ const FIREBASE_CONFIG = {
   appId:             "1:86776416908:web:ad8f23c36c1bded852c9a9"
 };
 
+// photo: filename | null (uses gradient initials avatar)
+// pos: CSS object-position to frame the face correctly
 const MEMBERS = [
-  { id: 'mubashir',  name: 'Mubashir Marshal' },
-  { id: 'jehanzaib', name: 'Jehanzaib' },
-  { id: 'amir',      name: 'Amir Sohail' },
-  { id: 'ahmad',     name: 'Muhammad Ahmad' },
+  { id: 'mubashir',  name: 'Mubashir Marshal', photo: null,              pos: 'center top'  },
+  { id: 'jehanzaib', name: 'Jehanzaib',         photo: 'Jehanzaib.jpeg', pos: 'center 40%'  },
+  { id: 'amir',      name: 'Amir Sohail',       photo: 'Amir.jpeg',      pos: 'center 45%'  },
+  { id: 'ahmad',     name: 'Muhammad Ahmad',    photo: 'Ahmad.JPG',      pos: 'center 8%'   },
 ];
 
 const STORAGE_KEY = 'fiverrwatch_member_id';
@@ -32,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('touchstart', unlockAudio, { once: true });
   document.addEventListener('click',      unlockAudio, { once: true });
 
-  // Subscribe to Firebase immediately so name-select screen shows last-seen
   subscribeToStatus();
 
   myId = localStorage.getItem(STORAGE_KEY);
@@ -45,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setScreen('screen-select');
   }
 
-  // Refresh relative timestamps every 60 seconds
   setInterval(refreshTimestamps, 60_000);
 
   if ('serviceWorker' in navigator) {
@@ -54,20 +54,28 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ─────────────────────────────────────────────────────────
-// SCREEN: NAME SELECTION
+// NAME SELECTION
 // ─────────────────────────────────────────────────────────
 function buildNameButtons() {
   const grid = document.getElementById('name-grid');
   grid.innerHTML = '';
+
   MEMBERS.forEach(member => {
     const btn = document.createElement('button');
     btn.className = 'name-btn';
     btn.id        = `name-btn-${member.id}`;
+
+    const photoInner = member.photo
+      ? `<img src="${member.photo}" class="name-btn-photo-img"
+             style="object-position:${member.pos}" alt="${member.name}" loading="lazy">`
+      : `<div class="name-btn-photo-placeholder">${getInitials(member.name)}</div>`;
+
     btn.innerHTML = `
-      <div class="name-btn-avatar" id="nav-${member.id}">${getInitials(member.name)}</div>
+      <div class="name-btn-photo-wrap" id="nav-${member.id}">${photoInner}</div>
       <span class="name-btn-name">${member.name}</span>
       <span class="name-btn-seen" id="seen-${member.id}"></span>
     `;
+
     btn.addEventListener('click', () => selectMember(member.id));
     grid.appendChild(btn);
   });
@@ -75,19 +83,19 @@ function buildNameButtons() {
 
 function updateNameButtons() {
   MEMBERS.forEach(member => {
-    const seenEl   = document.getElementById(`seen-${member.id}`);
-    const avatarEl = document.getElementById(`nav-${member.id}`);
+    const seenEl = document.getElementById(`seen-${member.id}`);
+    const wrapEl = document.getElementById(`nav-${member.id}`);
     if (!seenEl) return;
 
-    const data      = currentStatus[member.id] || {};
-    const isActive  = !!data.active;
-    const ts        = data.lastChanged || null;
+    const data     = currentStatus[member.id] || {};
+    const isActive = !!data.active;
+    const ts       = data.lastChanged || null;
 
     seenEl.textContent = ts ? formatLastSeen(ts, isActive) : '';
-    seenEl.className   = `name-btn-seen ${isActive ? 'seen-active' : ''}`;
+    seenEl.className   = `name-btn-seen${isActive ? ' seen-active' : ''}`;
 
-    if (avatarEl) {
-      avatarEl.className = `name-btn-avatar ${isActive ? 'avatar-active' : ''}`;
+    if (wrapEl) {
+      wrapEl.className = `name-btn-photo-wrap${isActive ? ' photo-ring-active' : ''}`;
     }
   });
 }
@@ -102,26 +110,39 @@ function selectMember(id) {
 }
 
 // ─────────────────────────────────────────────────────────
-// SCREEN: DASHBOARD
+// DASHBOARD CARDS
 // ─────────────────────────────────────────────────────────
 function buildCards() {
   const grid = document.getElementById('cards-grid');
   grid.innerHTML = '';
+
   MEMBERS.forEach(member => {
     const isMe = member.id === myId;
     const card = document.createElement('div');
     card.className = `member-card${isMe ? ' card-me' : ''}`;
     card.id        = `card-${member.id}`;
+
+    const photoInner = member.photo
+      ? `<img src="${member.photo}" class="card-photo-img"
+             style="object-position:${member.pos}" alt="${member.name}" loading="lazy">`
+      : `<div class="card-photo-placeholder">${getInitials(member.name)}</div>`;
+
     card.innerHTML = `
-      <div class="card-avatar">${getInitials(member.name)}</div>
-      <div class="card-name">${member.name}</div>
-      <div class="card-chip">
-        <span class="chip-dot"></span>
-        <span class="chip-text">Inactive</span>
+      <div class="card-photo-wrap">
+        ${photoInner}
+        <div class="card-live-dot"></div>
+        ${isMe ? '<div class="card-you-badge">You</div>' : ''}
       </div>
-      <div class="card-lastseen"></div>
-      ${isMe ? '<div class="card-you-badge">You</div>' : ''}
+      <div class="card-info">
+        <div class="card-name">${member.name.split(' ')[0]}</div>
+        <div class="card-chip">
+          <span class="chip-dot"></span>
+          <span class="chip-text">Inactive</span>
+        </div>
+        <div class="card-lastseen"></div>
+      </div>
     `;
+
     grid.appendChild(card);
   });
 }
@@ -156,7 +177,7 @@ async function writeMyStatus(active) {
 }
 
 // ─────────────────────────────────────────────────────────
-// UI: RENDER ALL
+// UI UPDATE
 // ─────────────────────────────────────────────────────────
 function updateAllUI() {
   updateNameButtons();
@@ -174,11 +195,10 @@ function renderCards() {
     const data     = currentStatus[member.id] || {};
     const isActive = !!data.active;
     const ts       = data.lastChanged || null;
-
-    const card = document.getElementById(`card-${member.id}`);
+    const card     = document.getElementById(`card-${member.id}`);
     if (!card) return;
 
-    const wasActive    = card.classList.contains('card-active');
+    const wasActive     = card.classList.contains('card-active');
     const statusChanged = isActive !== wasActive;
 
     card.classList.toggle('card-active', isActive);
@@ -187,31 +207,29 @@ function renderCards() {
 
     if (statusChanged) {
       card.classList.remove('card-pop');
-      void card.offsetWidth; // force reflow to restart animation
+      void card.offsetWidth;
       card.classList.add('card-pop');
       setTimeout(() => card.classList.remove('card-pop'), 400);
     }
   });
 
-  // Update footer toggle
   const toggleBtn   = document.getElementById('toggle-btn');
   const statusLabel = document.getElementById('my-status-label');
 
   if (myActive) {
-    toggleBtn.textContent = 'Go Inactive';
-    toggleBtn.className   = 'toggle-btn btn-go-inactive';
+    toggleBtn.textContent   = 'Go Inactive';
+    toggleBtn.className     = 'toggle-btn btn-go-inactive';
     statusLabel.textContent = 'You are active on Fiverr ✓';
     statusLabel.className   = 'my-status-label label-active';
   } else {
-    toggleBtn.textContent = 'Go Active';
-    toggleBtn.className   = 'toggle-btn btn-go-active';
+    toggleBtn.textContent   = 'Go Active';
+    toggleBtn.className     = 'toggle-btn btn-go-active';
     statusLabel.textContent = 'You are currently inactive';
     statusLabel.className   = 'my-status-label';
   }
 }
 
 function refreshTimestamps() {
-  // Re-render just the time strings without touching status classes
   MEMBERS.forEach(member => {
     const data = currentStatus[member.id] || {};
     const ts   = data.lastChanged || null;
@@ -234,12 +252,12 @@ function checkCoverage() {
   const banner    = document.getElementById('warning-banner');
 
   if (anyActive) {
-    badge.className                              = 'coverage-badge badge-ok';
+    badge.className = 'coverage-badge badge-ok';
     badge.querySelector('.badge-text').textContent = 'All Clear';
     banner.classList.add('hidden');
     if (alertActive) hideAlert();
   } else {
-    badge.className                              = 'coverage-badge badge-alert';
+    badge.className = 'coverage-badge badge-alert';
     badge.querySelector('.badge-text').textContent = 'No Coverage';
     banner.classList.remove('hidden');
     if (!alertActive) showAlert();
@@ -254,7 +272,6 @@ function showAlert() {
   document.getElementById('alert-overlay').classList.remove('hidden');
   startBeeping();
 }
-
 function hideAlert() {
   alertActive = false;
   document.getElementById('alert-overlay').classList.add('hidden');
@@ -265,13 +282,9 @@ function hideAlert() {
 // ACTIONS
 // ─────────────────────────────────────────────────────────
 function toggleMyStatus() {
-  const myActive = !!(currentStatus[myId] || {}).active;
-  writeMyStatus(!myActive);
+  writeMyStatus(!!(currentStatus[myId] || {}).active === false);
 }
-
-function imOnIt() {
-  writeMyStatus(true);
-}
+function imOnIt() { writeMyStatus(true); }
 
 // ─────────────────────────────────────────────────────────
 // SCREEN TRANSITIONS
@@ -284,9 +297,8 @@ function setScreen(newId) {
   if (current) {
     current.classList.remove('active');
     current.classList.add('exiting');
-    setTimeout(() => current.classList.remove('exiting'), 260);
+    setTimeout(() => current.classList.remove('exiting'), 280);
   }
-
   setTimeout(() => next.classList.add('active'), current ? 40 : 0);
 }
 
