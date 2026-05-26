@@ -11,7 +11,7 @@ const FIREBASE_CONFIG = {
 // photo: filename | null (uses gradient initials avatar)
 // pos: CSS object-position to frame the face correctly
 const MEMBERS = [
-  { id: 'mubashir',  name: 'Mubashir Marshal', photo: null,              pos: 'center top'  },
+  { id: 'mubashir',  name: 'Mubashir Marshal', photo: 'Mubashir Marshal.jpg', pos: 'center 15%' },
   { id: 'jehanzaib', name: 'Jehanzaib',         photo: 'Jehanzaib.jpeg', pos: 'center 40%'  },
   { id: 'amir',      name: 'Amir Sohail',       photo: 'Amir.jpeg',      pos: 'center 45%'  },
   { id: 'ahmad',     name: 'Muhammad Ahmad',    photo: 'Ahmad.JPG',      pos: 'center 8%'   },
