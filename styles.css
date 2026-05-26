@@ -237,6 +237,28 @@ html, body {
   color: var(--label);
   letter-spacing: -0.3px;
 }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sound-toggle-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: var(--fill);
+  border-radius: 50%;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease, transform 0.12s ease;
+  flex-shrink: 0;
+}
+.sound-toggle-btn:active { transform: scale(0.88); }
+.sound-toggle-btn.muted  { background: rgba(255, 59, 48, 0.12); }
 
 /* Coverage badge */
 .coverage-badge {

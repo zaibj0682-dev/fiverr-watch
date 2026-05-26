@@ -8,23 +8,26 @@ const FIREBASE_CONFIG = {
   appId:             "1:86776416908:web:ad8f23c36c1bded852c9a9"
 };
 
-// photo: filename | null (uses gradient initials avatar)
-// pos: CSS object-position to frame the face correctly
 const MEMBERS = [
   { id: 'mubashir',  name: 'Mubashir Marshal', photo: 'Mubashir Marshal.jpg', pos: 'center 15%' },
-  { id: 'jehanzaib', name: 'Jehanzaib',         photo: 'Jehanzaib.jpeg', pos: 'center 40%'  },
-  { id: 'amir',      name: 'Amir Sohail',       photo: 'Amir.jpeg',      pos: 'center 45%'  },
-  { id: 'ahmad',     name: 'Muhammad Ahmad',    photo: 'Ahmad.JPG',      pos: 'center 8%'   },
+  { id: 'jehanzaib', name: 'Jehanzaib',         photo: 'Jehanzaib.jpeg',       pos: 'center 40%' },
+  { id: 'amir',      name: 'Amir Sohail',       photo: 'Amir.jpeg',            pos: 'center 45%' },
+  { id: 'ahmad',     name: 'Muhammad Ahmad',    photo: 'Ahmad.JPG',            pos: 'center 8%'  },
 ];
 
 const STORAGE_KEY = 'fiverrwatch_member_id';
+const SOUND_KEY   = 'fiverrwatch_sound_muted';
 
-let db            = null;
-let myId          = null;
+// ── State ──
+let db           = null;
+let myId         = null;
 let currentStatus = {};
-let alertActive   = false;
-let audioCtx      = null;
-let beepTimer     = null;
+let alertActive  = false;
+let soundMuted   = localStorage.getItem(SOUND_KEY) === 'true';
+let wakeLock     = null;
+let audioCtx     = null;
+let beepTimer    = null;
+let vibrateTimer = null;
 
 // ── Boot ──
 firebase.initializeApp(FIREBASE_CONFIG);
@@ -41,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     buildCards();
     bindDashboardButtons();
     setScreen('screen-dashboard');
+    requestWakeLock();
   } else {
     buildNameButtons();
     setScreen('screen-select');
@@ -53,13 +57,48 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// Re-acquire wake lock whenever the tab comes back into view
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && myId) requestWakeLock();
+});
+
+// ─────────────────────────────────────────────────────────
+// WAKE LOCK — keeps screen on while app is open
+// ─────────────────────────────────────────────────────────
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+  } catch (_) {}
+}
+
+// ─────────────────────────────────────────────────────────
+// SOUND TOGGLE
+// ─────────────────────────────────────────────────────────
+function initSoundToggle() {
+  updateSoundToggleUI();
+  document.getElementById('sound-toggle').addEventListener('click', () => {
+    soundMuted = !soundMuted;
+    localStorage.setItem(SOUND_KEY, String(soundMuted));
+    updateSoundToggleUI();
+    if (soundMuted) stopBeeping();
+    else if (alertActive) startBeeping();
+  });
+}
+
+function updateSoundToggleUI() {
+  const btn = document.getElementById('sound-toggle');
+  if (!btn) return;
+  btn.textContent = soundMuted ? '🔕' : '🔔';
+  btn.classList.toggle('muted', soundMuted);
+}
+
 // ─────────────────────────────────────────────────────────
 // NAME SELECTION
 // ─────────────────────────────────────────────────────────
 function buildNameButtons() {
   const grid = document.getElementById('name-grid');
   grid.innerHTML = '';
-
   MEMBERS.forEach(member => {
     const btn = document.createElement('button');
     btn.className = 'name-btn';
@@ -75,7 +114,6 @@ function buildNameButtons() {
       <span class="name-btn-name">${member.name}</span>
       <span class="name-btn-seen" id="seen-${member.id}"></span>
     `;
-
     btn.addEventListener('click', () => selectMember(member.id));
     grid.appendChild(btn);
   });
@@ -86,17 +124,12 @@ function updateNameButtons() {
     const seenEl = document.getElementById(`seen-${member.id}`);
     const wrapEl = document.getElementById(`nav-${member.id}`);
     if (!seenEl) return;
-
     const data     = currentStatus[member.id] || {};
     const isActive = !!data.active;
     const ts       = data.lastChanged || null;
-
     seenEl.textContent = ts ? formatLastSeen(ts, isActive) : '';
     seenEl.className   = `name-btn-seen${isActive ? ' seen-active' : ''}`;
-
-    if (wrapEl) {
-      wrapEl.className = `name-btn-photo-wrap${isActive ? ' photo-ring-active' : ''}`;
-    }
+    if (wrapEl) wrapEl.className = `name-btn-photo-wrap${isActive ? ' photo-ring-active' : ''}`;
   });
 }
 
@@ -107,6 +140,7 @@ function selectMember(id) {
   bindDashboardButtons();
   setScreen('screen-dashboard');
   checkCoverage();
+  requestWakeLock();
 }
 
 // ─────────────────────────────────────────────────────────
@@ -115,7 +149,6 @@ function selectMember(id) {
 function buildCards() {
   const grid = document.getElementById('cards-grid');
   grid.innerHTML = '';
-
   MEMBERS.forEach(member => {
     const isMe = member.id === myId;
     const card = document.createElement('div');
@@ -142,7 +175,6 @@ function buildCards() {
         <div class="card-lastseen"></div>
       </div>
     `;
-
     grid.appendChild(card);
   });
 }
@@ -150,6 +182,7 @@ function buildCards() {
 function bindDashboardButtons() {
   document.getElementById('toggle-btn').addEventListener('click', toggleMyStatus);
   document.getElementById('im-on-it-btn').addEventListener('click', imOnIt);
+  initSoundToggle();
 }
 
 // ─────────────────────────────────────────────────────────
@@ -166,7 +199,6 @@ async function writeMyStatus(active) {
   if (!myId) return;
   const ref     = db.ref(`status/${myId}`);
   const payload = { active, lastChanged: firebase.database.ServerValue.TIMESTAMP };
-
   if (active) {
     await ref.onDisconnect().set({ active: false, lastChanged: firebase.database.ServerValue.TIMESTAMP });
     await ref.set(payload);
@@ -192,17 +224,17 @@ function renderCards() {
   const myActive = !!(currentStatus[myId] || {}).active;
 
   MEMBERS.forEach(member => {
-    const data     = currentStatus[member.id] || {};
-    const isActive = !!data.active;
-    const ts       = data.lastChanged || null;
-    const card     = document.getElementById(`card-${member.id}`);
+    const data      = currentStatus[member.id] || {};
+    const isActive  = !!data.active;
+    const ts        = data.lastChanged || null;
+    const card      = document.getElementById(`card-${member.id}`);
     if (!card) return;
 
     const wasActive     = card.classList.contains('card-active');
     const statusChanged = isActive !== wasActive;
 
     card.classList.toggle('card-active', isActive);
-    card.querySelector('.chip-text').textContent    = isActive ? 'Active' : 'Inactive';
+    card.querySelector('.chip-text').textContent     = isActive ? 'Active' : 'Inactive';
     card.querySelector('.card-lastseen').textContent = ts ? formatLastSeen(ts, isActive) : '';
 
     if (statusChanged) {
@@ -234,10 +266,8 @@ function refreshTimestamps() {
     const data = currentStatus[member.id] || {};
     const ts   = data.lastChanged || null;
     if (!ts) return;
-
     const card = document.getElementById(`card-${member.id}`);
     if (card) card.querySelector('.card-lastseen').textContent = formatLastSeen(ts, !!data.active);
-
     const seenEl = document.getElementById(`seen-${member.id}`);
     if (seenEl && seenEl.textContent) seenEl.textContent = formatLastSeen(ts, !!data.active);
   });
@@ -271,11 +301,14 @@ function showAlert() {
   alertActive = true;
   document.getElementById('alert-overlay').classList.remove('hidden');
   startBeeping();
+  startVibrating();
 }
+
 function hideAlert() {
   alertActive = false;
   document.getElementById('alert-overlay').classList.add('hidden');
   stopBeeping();
+  stopVibrating();
 }
 
 // ─────────────────────────────────────────────────────────
@@ -293,7 +326,6 @@ function setScreen(newId) {
   const current = document.querySelector('.screen.active');
   const next    = document.getElementById(newId);
   if (current === next) return;
-
   if (current) {
     current.classList.remove('active');
     current.classList.add('exiting');
@@ -314,7 +346,6 @@ function formatLastSeen(ts, isActive) {
   const diff  = Date.now() - ts;
   const mins  = Math.floor(diff / 60_000);
   const hours = Math.floor(diff / 3_600_000);
-
   if (isActive) {
     if (mins < 1)  return 'Just went active';
     if (mins < 60) return `Active for ${mins}m`;
@@ -323,15 +354,14 @@ function formatLastSeen(ts, isActive) {
     if (mins < 1)  return 'Just went offline';
     if (mins < 60) return `Last seen ${mins}m ago`;
     if (hours < 24) {
-      const t = new Date(ts);
-      return `Last seen at ${t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      return `Last seen at ${new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     }
     return `Last seen ${new Date(ts).toLocaleDateString()}`;
   }
 }
 
 // ─────────────────────────────────────────────────────────
-// AUDIO
+// AUDIO — Web Audio API beep
 // ─────────────────────────────────────────────────────────
 function unlockAudio() {
   if (audioCtx) return;
@@ -346,7 +376,7 @@ function unlockAudio() {
 }
 
 function beep() {
-  if (!audioCtx) return;
+  if (!audioCtx || soundMuted) return;        // ← respects mute toggle
   try {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const t    = audioCtx.currentTime;
@@ -365,3 +395,20 @@ function beep() {
 
 function startBeeping() { beep(); beepTimer = setInterval(beep, 900); }
 function stopBeeping()  { clearInterval(beepTimer); beepTimer = null; }
+
+// ─────────────────────────────────────────────────────────
+// VIBRATION — Android alert buzz (iOS ignores silently)
+// ─────────────────────────────────────────────────────────
+function startVibrating() {
+  if (!('vibrate' in navigator)) return;
+  navigator.vibrate([400, 150, 400, 150, 400]);           // immediate burst
+  vibrateTimer = setInterval(() => {
+    navigator.vibrate([400, 150, 400, 150, 400]);
+  }, 4_000);                                              // repeat every 4s
+}
+
+function stopVibrating() {
+  if ('vibrate' in navigator) navigator.vibrate(0);       // cancel immediately
+  clearInterval(vibrateTimer);
+  vibrateTimer = null;
+}
