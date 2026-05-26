@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="FiverWatch">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="description" content="Real-time Fiverr duty tracker for Upastra Digital Media">
+
+  <title>Fiverr Watch</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ── Screen 1: Name Selection ── -->
+  <div id="screen-select" class="screen active">
+    <div class="select-content">
+      <img src="icon.svg" alt="" class="app-icon" width="80" height="80">
+      <h1 class="app-title">Fiverr Watch</h1>
+      <p class="app-tagline">Upastra Digital Media</p>
+      <p class="select-prompt">Who are you?</p>
+      <div class="name-grid" id="name-grid"></div>
+    </div>
+  </div>
+
+  <!-- ── Screen 2: Dashboard ── -->
+  <div id="screen-dashboard" class="screen">
+    <div class="dashboard-layout">
+
+      <header class="app-header">
+        <div class="header-row">
+          <div class="header-left">
+            <img src="icon.svg" alt="" class="header-icon" width="30" height="30">
+            <span class="header-title">Fiverr Watch</span>
+          </div>
+          <div id="coverage-badge" class="coverage-badge badge-ok">
+            <span class="badge-dot"></span>
+            <span class="badge-text">All Clear</span>
+          </div>
+        </div>
+        <div id="warning-banner" class="warning-banner hidden">
+          ⚠️ No one is watching Fiverr right now
+        </div>
+      </header>
+
+      <main class="cards-area">
+        <div class="cards-grid" id="cards-grid"></div>
+      </main>
+
+      <footer class="action-footer">
+        <div class="my-status-label" id="my-status-label">You are currently inactive</div>
+        <button id="toggle-btn" class="toggle-btn btn-go-active">Go Active</button>
+      </footer>
+
+    </div>
+  </div>
+
+  <!-- ── Alert Overlay ── -->
+  <div id="alert-overlay" class="alert-overlay hidden">
+    <div class="alert-pulse"></div>
+    <div class="alert-sheet">
+      <div class="alert-handle"></div>
+      <div class="alert-icon">⚠️</div>
+      <h1 class="alert-title">No One Is Watching Fiverr!</h1>
+      <p class="alert-body">A message or order might be missed right now.</p>
+      <button id="im-on-it-btn" class="im-on-it-btn">I'm On It</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
