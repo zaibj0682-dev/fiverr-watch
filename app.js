@@ -9,7 +9,7 @@ const FIREBASE_CONFIG = {
 };
 
 const MEMBERS = [
-  { id: 'mubashir',  name: 'Mubashir Marshal', photo: 'Mubashir Marshal.jpg', pos: 'center 15%' },
+  { id: 'mubashir',  name: 'Mubashir Marshal', photo: 'Mubashir%20Marshal.jpg', pos: 'center 15%' },
   { id: 'jehanzaib', name: 'Jehanzaib',         photo: 'Jehanzaib.jpeg',       pos: 'center 40%' },
   { id: 'amir',      name: 'Amir Sohail',       photo: 'Amir.jpeg',            pos: 'center 45%' },
   { id: 'ahmad',     name: 'Muhammad Ahmad',    photo: 'Ahmad.JPG',            pos: 'center 8%'  },

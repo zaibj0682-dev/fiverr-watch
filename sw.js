@@ -1,4 +1,4 @@
-const CACHE  = 'fiverwatch-v1';
+const CACHE  = 'fiverwatch-v2';
 const STATIC = ['./', './index.html', './styles.css', './app.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
