@@ -199,13 +199,7 @@ async function writeMyStatus(active) {
   if (!myId) return;
   const ref     = db.ref(`status/${myId}`);
   const payload = { active, lastChanged: firebase.database.ServerValue.TIMESTAMP };
-  if (active) {
-    await ref.onDisconnect().set({ active: false, lastChanged: firebase.database.ServerValue.TIMESTAMP });
-    await ref.set(payload);
-  } else {
-    await ref.onDisconnect().cancel();
-    await ref.set(payload);
-  }
+  await ref.set(payload);
 }
 
 // ─────────────────────────────────────────────────────────
