@@ -1,5 +1,5 @@
-const CACHE  = 'fiverwatch-v2';
-const STATIC = ['./', './index.html', './styles.css', './app.js', './manifest.json', './icon.svg'];
+const CACHE  = 'fiverwatch-v3';
+const STATIC = ['./', './index.html', './styles.css', './app.js', './manifest.json', './icon-any.svg', './icon-maskable.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));

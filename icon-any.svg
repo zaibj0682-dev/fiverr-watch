@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Transparent background — OS provides the container color -->
+
+  <!-- Eye outline (the "Watch" concept) -->
+  <ellipse cx="256" cy="256" rx="165" ry="105" fill="none" stroke="#1DBF73" stroke-width="26" stroke-linecap="round"/>
+
+  <!-- Iris -->
+  <circle cx="256" cy="256" r="68" fill="#1DBF73"/>
+
+  <!-- Pupil -->
+  <circle cx="256" cy="256" r="34" fill="#0D0D0D"/>
+
+  <!-- Specular highlight -->
+  <circle cx="280" cy="232" r="18" fill="white" opacity="0.45"/>
+</svg>

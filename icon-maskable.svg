@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Opaque dark background for maskable — fills the full bleed -->
+  <rect width="512" height="512" fill="#0D0D0D"/>
+
+  <!-- All artwork must stay within the safe zone: inner 80% circle (radius ~205, center 256,256) -->
+
+  <!-- Eye outline -->
+  <ellipse cx="256" cy="256" rx="148" ry="94" fill="none" stroke="#1DBF73" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- Iris -->
+  <circle cx="256" cy="256" r="60" fill="#1DBF73"/>
+
+  <!-- Pupil -->
+  <circle cx="256" cy="256" r="30" fill="#0D0D0D"/>
+
+  <!-- Specular highlight -->
+  <circle cx="277" cy="236" r="16" fill="white" opacity="0.45"/>
+</svg>
